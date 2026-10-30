@@ -152,7 +152,7 @@
                 <div class="md:col-span-5 space-y-2 bg-slate-50 p-4 rounded-xl border border-slate-200">
                     <label class="block text-xs font-bold text-slate-700 flex items-center gap-1.5">
                         <i data-lucide="key" class="w-3.5 h-3.5 text-blue-600"></i>
-                        Primary Key: Fail 1 (Master)
+                        Primary Key: Fail 1 (Master / Reference ID 2)
                     </label>
                     <select id="selectKeyFile1" class="w-full text-sm bg-white border border-slate-300 rounded-lg p-2.5 focus:ring-2 focus:ring-indigo-500 focus:outline-none">
                         <option value="">-- Sila pilih lajur --</option>
@@ -172,7 +172,7 @@
                 <div class="md:col-span-5 space-y-2 bg-slate-50 p-4 rounded-xl border border-slate-200">
                     <label class="block text-xs font-bold text-slate-700 flex items-center gap-1.5">
                         <i data-lucide="key" class="w-3.5 h-3.5 text-purple-600"></i>
-                        Primary Key: Fail 2 (Lookup)
+                        Primary Key: Fail 2 (Lookup / REFERENCE ID)
                     </label>
                     <select id="selectKeyFile2" class="w-full text-sm bg-white border border-slate-300 rounded-lg p-2.5 focus:ring-2 focus:ring-indigo-500 focus:outline-none">
                         <option value="">-- Sila pilih lajur --</option>
@@ -188,15 +188,21 @@
                 </span>
                 <label class="flex items-center gap-2 cursor-pointer select-none">
                     <input type="checkbox" id="optTrim" checked class="rounded text-indigo-600 focus:ring-indigo-500">
-                    <span>Trim Ruang Kosong (Trim Spaces)</span>
+                    <span>Trim Ruang Kosong</span>
                 </label>
                 <label class="flex items-center gap-2 cursor-pointer select-none">
                     <input type="checkbox" id="optCaseInsensitive" checked class="rounded text-indigo-600 focus:ring-indigo-500">
-                    <span>Abaikan Huruf Besar/Kecil (Case-Insensitive)</span>
+                    <span>Abaikan Huruf Besar/Kecil</span>
                 </label>
                 <label class="flex items-center gap-2 cursor-pointer select-none">
                     <input type="checkbox" id="optCleanSymbols" class="rounded text-indigo-600 focus:ring-indigo-500">
-                    <span>Abaikan Simbol Khas (cth: -, /, _)</span>
+                    <span>Abaikan Simbol Khas (-, /, _)</span>
+                </label>
+
+                <!-- Checkbox Khusus: Buang 2 Aksara Terakhir (Reference ID 2 / Fail 1 sahaja) -->
+                <label class="flex items-center gap-2 cursor-pointer select-none bg-indigo-50 px-2.5 py-1 rounded-lg border border-indigo-200 text-indigo-900 font-semibold">
+                    <input type="checkbox" id="optTrimLast2F1" class="rounded text-indigo-600 focus:ring-indigo-500">
+                    <span>Buang 2 Aksara Terakhir Fail 1 Sahaja (Reference ID 2)</span>
                 </label>
             </div>
 
@@ -316,12 +322,8 @@
                 <!-- Table Preview -->
                 <div class="overflow-x-auto max-h-[500px]">
                     <table class="w-full text-left text-xs text-slate-700 whitespace-nowrap border-collapse" id="resultsTable">
-                        <thead class="bg-slate-100 text-slate-800 font-semibold sticky top-0 border-b border-slate-200 shadow-sm z-10" id="tableHead">
-                            <!-- Headers dynamically injected -->
-                        </thead>
-                        <tbody class="divide-y divide-slate-100" id="tableBody">
-                            <!-- Rows dynamically injected -->
-                        </tbody>
+                        <thead class="bg-slate-100 text-slate-800 font-semibold sticky top-0 border-b border-slate-200 shadow-sm z-10" id="tableHead"></thead>
+                        <tbody class="divide-y divide-slate-100" id="tableBody"></tbody>
                     </table>
                 </div>
 
@@ -379,34 +381,33 @@
         const pageSize = 15;
         let activeMode = "XLOOKUP"; // 'XLOOKUP' atau 'RECONCILE'
 
-        // Data Demo Pra-bina (DBKL NEXGEN vs BANK DBKL)
+        // Data Demo DBKL: Reference ID 2 sengaja mempunyai 2 digit tambahan di belakang (-01, -02, dsb.)
         const demoNEXGEN = [
-            { "BIL": 1, "TARIKH": "09/01/2026", "REFERENCE ID 2": "DBKL-900124", "NO AKAUN": "100239102", "PEMBAYAR": "SYARIKAT BERSATU MAJU", "SALURAN": "JOMPAY", "AMAUN (RM)": 1500.00 },
-            { "BIL": 2, "TARIKH": "09/01/2026", "REFERENCE ID 2": "DBKL-900125", "NO AKAUN": "100239103", "PEMBAYAR": "KEDAI KOPI LIM", "SALURAN": "ONLINE BANKING", "AMAUN (RM)": 240.50 },
-            { "BIL": 3, "TARIKH": "09/01/2026", "REFERENCE ID 2": "DBKL-900126", "NO AKAUN": "100239104", "PEMBAYAR": "AHMAD BIN HUSIN", "SALURAN": "FPX", "AMAUN (RM)": 85.00 },
-            { "BIL": 4, "TARIKH": "09/01/2026", "REFERENCE ID 2": "DBKL-900127", "NO AKAUN": "100239105", "PEMBAYAR": "MEGA VENTURES SDN BHD", "SALURAN": "JOMPAY", "AMAUN (RM)": 4350.00 },
-            { "BIL": 5, "TARIKH": "09/01/2026", "REFERENCE ID 2": "DBKL-900128", "NO AKAUN": "100239106", "PEMBAYAR": "NUR FATIMAH BINTI ALI", "SALURAN": "KAD KREDIT", "AMAUN (RM)": 120.00 },
-            { "BIL": 6, "TARIKH": "09/01/2026", "REFERENCE ID 2": "DBKL-900129", "NO AKAUN": "100239107", "PEMBAYAR": "PERTUBUHAN AMAL JAYA", "SALURAN": "FPX", "AMAUN (RM)": 350.00 },
-            { "BIL": 7, "TARIKH": "09/01/2026", "REFERENCE ID 2": "DBKL-900130", "NO AKAUN": "100239108", "PEMBAYAR": "CHONG MOTOR SERVICE", "SALURAN": "ONLINE BANKING", "AMAUN (RM)": 780.00 },
-            { "BIL": 8, "TARIKH": "09/01/2026", "REFERENCE ID 2": "DBKL-900131", "NO AKAUN": "100239109", "PEMBAYAR": "RESTURAN ZAINAL", "SALURAN": "JOMPAY", "AMAUN (RM)": 920.00 }
+            { "BIL": 1, "TARIKH": "09/01/2026", "REFERENCE ID 2": "DBKL-900124-1", "NO AKAUN": "100239102", "PEMBAYAR": "SYARIKAT BERSATU MAJU", "SALURAN": "JOMPAY", "AMAUN (RM)": 1500.00 },
+            { "BIL": 2, "TARIKH": "09/01/2026", "REFERENCE ID 2": "DBKL-900125-2", "NO AKAUN": "100239103", "PEMBAYAR": "KEDAI KOPI LIM", "SALURAN": "ONLINE BANKING", "AMAUN (RM)": 240.50 },
+            { "BIL": 3, "TARIKH": "09/01/2026", "REFERENCE ID 2": "DBKL-900126-3", "NO AKAUN": "100239104", "PEMBAYAR": "AHMAD BIN HUSIN", "SALURAN": "FPX", "AMAUN (RM)": 85.00 },
+            { "BIL": 4, "TARIKH": "09/01/2026", "REFERENCE ID 2": "DBKL-900127-4", "NO AKAUN": "100239105", "PEMBAYAR": "MEGA VENTURES SDN BHD", "SALURAN": "JOMPAY", "AMAUN (RM)": 4350.00 },
+            { "BIL": 5, "TARIKH": "09/01/2026", "REFERENCE ID 2": "DBKL-900128-5", "NO AKAUN": "100239106", "PEMBAYAR": "NUR FATIMAH BINTI ALI", "SALURAN": "KAD KREDIT", "AMAUN (RM)": 120.00 },
+            { "BIL": 6, "TARIKH": "09/01/2026", "REFERENCE ID 2": "DBKL-900129-6", "NO AKAUN": "100239107", "PEMBAYAR": "PERTUBUHAN AMAL JAYA", "SALURAN": "FPX", "AMAUN (RM)": 350.00 },
+            { "BIL": 7, "TARIKH": "09/01/2026", "REFERENCE ID 2": "DBKL-900130-7", "NO AKAUN": "100239108", "PEMBAYAR": "CHONG MOTOR SERVICE", "SALURAN": "ONLINE BANKING", "AMAUN (RM)": 780.00 },
+            { "BIL": 8, "TARIKH": "09/01/2026", "REFERENCE ID 2": "DBKL-900131-8", "NO AKAUN": "100239109", "PEMBAYAR": "RESTURAN ZAINAL", "SALURAN": "JOMPAY", "AMAUN (RM)": 920.00 }
         ];
 
+        // Fail Bank kekal dengan REFERENCE ID standard (tanpa akhiran 2 aksara)
         const demoBANK = [
             { "NO": 101, "TRANS DATE": "09/01/2026", "BANK REFERENCE": "DBKL-900124", "DESCRIPTION": "JOMPAY DBKL REF 900124", "CREDIT AMOUNT (RM)": 1500.00, "BANK STATUS": "SUCCESS" },
             { "NO": 102, "TRANS DATE": "09/01/2026", "BANK REFERENCE": "DBKL-900125", "DESCRIPTION": "IBG PAYMENT LIM KEDAI", "CREDIT AMOUNT (RM)": 240.50, "BANK STATUS": "SUCCESS" },
-            { "NO": 103, "TRANS DATE": "09/01/2026", "BANK REFERENCE": "DBKL-900126", "DESCRIPTION": "FPX TRANSACTION DBKL", "CREDIT AMOUNT (RM)": 80.00, "BANK STATUS": "SUCCESS" }, // Sengaja beza amaun (RM 80 vs RM 85)
+            { "NO": 103, "TRANS DATE": "09/01/2026", "BANK REFERENCE": "DBKL-900126", "DESCRIPTION": "FPX TRANSACTION DBKL", "CREDIT AMOUNT (RM)": 80.00, "BANK STATUS": "SUCCESS" }, // Percanggahan RM 80 vs RM 85
             { "NO": 104, "TRANS DATE": "09/01/2026", "BANK REFERENCE": "DBKL-900127", "DESCRIPTION": "MEGA VENTURES TRF", "CREDIT AMOUNT (RM)": 4350.00, "BANK STATUS": "SUCCESS" },
             { "NO": 105, "TRANS DATE": "09/01/2026", "BANK REFERENCE": "DBKL-900128", "DESCRIPTION": "CREDIT CARD SETTLEMENT", "CREDIT AMOUNT (RM)": 120.00, "BANK STATUS": "SUCCESS" },
-            { "NO": 106, "TRANS DATE": "09/01/2026", "BANK REFERENCE": "DBKL-900133", "DESCRIPTION": "BANK DIRECT DEBIT EXTRA", "CREDIT AMOUNT (RM)": 600.00, "BANK STATUS": "SUCCESS" } // Tiada dalam fail 1 (Orphan Bank)
+            { "NO": 106, "TRANS DATE": "09/01/2026", "BANK REFERENCE": "DBKL-900133", "DESCRIPTION": "BANK DIRECT DEBIT EXTRA", "CREDIT AMOUNT (RM)": 600.00, "BANK STATUS": "SUCCESS" }
         ];
 
-        // Inisialisasi Aplikasi
         window.onload = function() {
             lucide.createIcons();
             attachEventListeners();
         };
 
-        // Pasang Event Listeners
         function attachEventListeners() {
             document.getElementById('inputUploadFile1').addEventListener('change', (e) => handleFileUpload(e, 1));
             document.getElementById('inputUploadFile2').addEventListener('change', (e) => handleFileUpload(e, 2));
@@ -416,17 +417,16 @@
 
             document.getElementById('selectKeyFile1').addEventListener('change', updateKeyPreviews);
             document.getElementById('selectKeyFile2').addEventListener('change', updateKeyPreviews);
+            document.getElementById('optTrimLast2F1').addEventListener('change', updateKeyPreviews);
 
             document.getElementById('enableVariance').addEventListener('change', toggleVariancePanel);
             document.getElementById('btnSelectAllReturn').addEventListener('click', toggleSelectAllReturnCols);
 
             document.getElementById('btnExecuteMatch').addEventListener('click', performMatching);
 
-            // Mod Operasi
             document.getElementById('modeXlookup').addEventListener('click', () => setMode('XLOOKUP'));
             document.getElementById('modeReconcile').addEventListener('click', () => setMode('RECONCILE'));
 
-            // Table Filters
             const filterButtons = document.querySelectorAll('#filterStatusGroup .filter-tab');
             filterButtons.forEach(btn => {
                 btn.addEventListener('click', () => {
@@ -442,14 +442,12 @@
                 });
             });
 
-            // Search
             document.getElementById('inputSearchTable').addEventListener('input', (e) => {
                 currentSearchQuery = e.target.value.toLowerCase().trim();
                 currentPage = 1;
                 applyFilterAndSearch();
             });
 
-            // Pagination
             document.getElementById('btnPrevPage').addEventListener('click', () => {
                 if (currentPage > 1) {
                     currentPage--;
@@ -464,11 +462,9 @@
                 }
             });
 
-            // Export to Excel
             document.getElementById('btnExportExcel').addEventListener('click', exportResultsToExcel);
         }
 
-        // Tunjuk Notifikasi Toast
         function showToast(message, isSuccess = true) {
             const toast = document.getElementById('notificationToast');
             const msgEl = document.getElementById('toastMessage');
@@ -490,7 +486,6 @@
             }, 3500);
         }
 
-        // Baca Fail Excel / CSV
         function handleFileUpload(event, fileNum) {
             const file = event.target.files[0];
             if (!file) return;
@@ -540,7 +535,6 @@
             reader.readAsArrayBuffer(file);
         }
 
-        // Muat Data Demo DBKL
         function loadDemoData() {
             file1Data = JSON.parse(JSON.stringify(demoNEXGEN));
             file1Headers = Object.keys(file1Data[0]);
@@ -562,12 +556,13 @@
 
             checkBothFilesLoaded();
 
-            // Auto-select padanan demo
             setTimeout(() => {
-                selectOptionByPartialText('selectKeyFile1', 'REFERENCE ID');
+                selectOptionByPartialText('selectKeyFile1', 'REFERENCE ID 2');
                 selectOptionByPartialText('selectKeyFile2', 'BANK REFERENCE');
                 
-                // Tick enable variance
+                // Aktifkan pilihan buang 2 aksara untuk Fail 1 secara automatik bagi data demo
+                document.getElementById('optTrimLast2F1').checked = true;
+
                 const chkVar = document.getElementById('enableVariance');
                 chkVar.checked = true;
                 toggleVariancePanel();
@@ -575,7 +570,7 @@
                 selectOptionByPartialText('selectAmountFile2', 'CREDIT AMOUNT');
 
                 updateKeyPreviews();
-                showToast("Data demo DBKL NEXGEN & BANK telah dimuatkan!");
+                showToast("Data demo dimuatkan (Pilihan potong 2 aksara Fail 1 diaktifkan)");
             }, 100);
         }
 
@@ -589,7 +584,6 @@
             }
         }
 
-        // Semak sekiranya kedua-dua fail siap dimuat
         function checkBothFilesLoaded() {
             if (file1Data.length > 0 && file2Data.length > 0) {
                 populateFieldSelectors();
@@ -598,7 +592,6 @@
             }
         }
 
-        // Isi senarai dropdown lajur
         function populateFieldSelectors() {
             const selKey1 = document.getElementById('selectKeyFile1');
             const selKey2 = document.getElementById('selectKeyFile2');
@@ -612,22 +605,15 @@
             selAmt2.innerHTML = '<option value="">-- Pilih Lajur Amaun --</option>';
             returnContainer.innerHTML = '';
 
-            // File 1 Headers
             file1Headers.forEach(h => {
-                const opt1 = new Option(h, h);
-                const optAmt1 = new Option(h, h);
-                selKey1.add(opt1);
-                selAmt1.add(optAmt1);
+                selKey1.add(new Option(h, h));
+                selAmt1.add(new Option(h, h));
             });
 
-            // File 2 Headers
             file2Headers.forEach(h => {
-                const opt2 = new Option(h, h);
-                const optAmt2 = new Option(h, h);
-                selKey2.add(opt2);
-                selAmt2.add(optAmt2);
+                selKey2.add(new Option(h, h));
+                selAmt2.add(new Option(h, h));
 
-                // Tambah checkbox lajur pulangan Fail 2
                 const itemDiv = document.createElement('label');
                 itemDiv.className = 'flex items-center gap-2 p-1.5 rounded-lg bg-white border border-slate-200 hover:border-indigo-400 cursor-pointer text-xs select-none transition';
                 itemDiv.innerHTML = `
@@ -640,30 +626,34 @@
             updateKeyPreviews();
         }
 
-        // Kemaskini pratonton contoh nilai kunci
         function updateKeyPreviews() {
             const key1 = document.getElementById('selectKeyFile1').value;
             const key2 = document.getElementById('selectKeyFile2').value;
+            const trimLast2F1 = document.getElementById('optTrimLast2F1')?.checked || false;
 
             const p1 = document.getElementById('previewKey1');
             const p2 = document.getElementById('previewKey2');
 
+            // Fail 1: Tunjuk penukaran nilai sekiranya buang 2 aksara dipilih
             if (key1 && file1Data.length > 0) {
-                const sample1 = file1Data.slice(0, 3).map(r => r[key1]).filter(Boolean).join(", ");
+                const sample1 = file1Data.slice(0, 3).map(r => {
+                    const raw = String(r[key1] || "");
+                    return (trimLast2F1 && raw.length > 2) ? `${raw} ➔ ${raw.slice(0, -2)}` : raw;
+                }).filter(Boolean).join(", ");
                 p1.textContent = `Contoh: ${sample1 || "tiada nilai"}`;
             } else {
                 p1.textContent = 'Contoh nilai: -';
             }
 
+            // Fail 2: Sentiasa kekal dalam nilai rujukan asal (REFERENCE ID tidak dipotong)
             if (key2 && file2Data.length > 0) {
-                const sample2 = file2Data.slice(0, 3).map(r => r[key2]).filter(Boolean).join(", ");
+                const sample2 = file2Data.slice(0, 3).map(r => String(r[key2] || "")).filter(Boolean).join(", ");
                 p2.textContent = `Contoh: ${sample2 || "tiada nilai"}`;
             } else {
                 p2.textContent = 'Contoh nilai: -';
             }
         }
 
-        // Toggle panel perbezaan amaun
         function toggleVariancePanel() {
             const enabled = document.getElementById('enableVariance').checked;
             const panel = document.getElementById('varianceSettingsPanel');
@@ -674,7 +664,6 @@
             }
         }
 
-        // Toggle Pilih Semua Lajur
         let allReturnChecked = true;
         function toggleSelectAllReturnCols(e) {
             e.preventDefault();
@@ -684,7 +673,6 @@
             document.getElementById('btnSelectAllReturn').textContent = allReturnChecked ? "Nyahpilih Semua" : "Pilih Semua";
         }
 
-        // Tetapkan mod operasi
         function setMode(mode) {
             activeMode = mode;
             const btnX = document.getElementById('modeXlookup');
@@ -698,13 +686,18 @@
             }
         }
 
-        // Normalisasi Nilai Kunci (Trim, Lowercase, Remove Symbols)
-        function normalizeKey(value, trim, caseInsensitive, cleanSymbols) {
+        // Fungsi Normalisasi Kunci
+        function normalizeKey(value, trim, caseInsensitive, cleanSymbols, stripLast2 = false) {
             if (value === undefined || value === null) return "";
             let str = String(value);
             if (trim) str = str.trim();
             if (caseInsensitive) str = str.toLowerCase();
             if (cleanSymbols) str = str.replace(/[^a-zA-Z0-9]/g, "");
+            
+            // Potong 2 aksara terakhir jika opsyen ini dihantar true
+            if (stripLast2 && str.length > 2) {
+                str = str.slice(0, -2);
+            }
             return str;
         }
 
@@ -721,26 +714,23 @@
             const trim = document.getElementById('optTrim').checked;
             const caseInsensitive = document.getElementById('optCaseInsensitive').checked;
             const cleanSymbols = document.getElementById('optCleanSymbols').checked;
+            const trimLast2F1 = document.getElementById('optTrimLast2F1').checked;
 
-            // Dapatkan lajur terpilih dari Fail 2
             const selectedReturnCols = Array.from(document.querySelectorAll('input[name="returnCol"]:checked')).map(cb => cb.value);
-
-            // Periksa tetapan amaun
             const checkVariance = document.getElementById('enableVariance').checked;
             const amtColF1 = document.getElementById('selectAmountFile1').value;
             const amtColF2 = document.getElementById('selectAmountFile2').value;
             const tolerance = parseFloat(document.getElementById('inputTolerance').value) || 0;
 
-            // Bina Peta Carian Cepat (Lookup Hash Map) dari Fail 2
-            // Menyokong padanan pantas O(1)
+            // 1. Bina Map Carian dari Fail 2 (REFERENCE ID KEKAL ASAL - stripLast2 = false)
             const file2Map = new Map();
             const file2UsedIndices = new Set();
 
             file2Data.forEach((row, idx) => {
                 const rawKey = row[keyF2];
-                const cleanKey = normalizeKey(rawKey, trim, caseInsensitive, cleanSymbols);
+                // stripLast2 ditetapkan kepada false untuk Fail 2
+                const cleanKey = normalizeKey(rawKey, trim, caseInsensitive, cleanSymbols, false);
                 if (cleanKey !== "") {
-                    // Simpan rekod dan indeks
                     if (!file2Map.has(cleanKey)) {
                         file2Map.set(cleanKey, []);
                     }
@@ -753,10 +743,10 @@
             let countUnmatched = 0;
             let countDiscrepancy = 0;
 
-            // Gelung Fail 1 (Master)
+            // 2. Gelung Fail 1 (Reference ID 2: stripLast2 menggunakan nilai trimLast2F1)
             file1Data.forEach(row1 => {
                 const rawKey1 = row1[keyF1];
-                const cleanKey1 = normalizeKey(rawKey1, trim, caseInsensitive, cleanSymbols);
+                const cleanKey1 = normalizeKey(rawKey1, trim, caseInsensitive, cleanSymbols, trimLast2F1);
                 const candidateMatches = file2Map.get(cleanKey1);
 
                 let resultRow = { ...row1 };
@@ -765,7 +755,6 @@
                 let varianceNote = "Tiada Padanan di Fail 2";
 
                 if (candidateMatches && candidateMatches.length > 0) {
-                    // Ambil padanan pertama yang belum dipasangkan jika ada
                     const matchItem = candidateMatches[0];
                     const row2 = matchItem.row;
                     file2UsedIndices.add(matchItem.index);
@@ -773,13 +762,10 @@
                     matchStatus = "MATCHED";
                     countMatched++;
 
-                    // Bawa masuk lajur dari Fail 2 (XLOOKUP / VLOOKUP behaviour)
                     selectedReturnCols.forEach(col => {
-                        const newColHeader = `[F2] ${col}`;
-                        resultRow[newColHeader] = row2[col] !== undefined ? row2[col] : "";
+                        resultRow[`[F2] ${col}`] = row2[col] !== undefined ? row2[col] : "";
                     });
 
-                    // Semak Variance jika diaktifkan
                     if (checkVariance && amtColF1 && amtColF2) {
                         const val1 = parseFloat(String(row1[amtColF1]).replace(/[^0-9.-]+/g, "")) || 0;
                         const val2 = parseFloat(String(row2[amtColF2]).replace(/[^0-9.-]+/g, "")) || 0;
@@ -797,7 +783,6 @@
                     }
                 } else {
                     countUnmatched++;
-                    // Kosongkan lajur tambahan Fail 2
                     selectedReturnCols.forEach(col => {
                         resultRow[`[F2] ${col}`] = "N/A";
                     });
@@ -813,17 +798,13 @@
                 matchResults.push(resultRow);
             });
 
-            // Sekiranya mod Rekonsiliasi, sertakan juga baki Fail 2 yang tiada di Fail 1 (Orphan Records)
+            // 3. Masukkan rekod Orphan Fail 2 (Kekal dengan format asal Fail 2)
             let orphanCount = 0;
             file2Data.forEach((row2, idx) => {
                 if (!file2UsedIndices.has(idx)) {
                     orphanCount++;
                     let orphanRow = {};
-                    // Kosongkan lajur fail 1
-                    file1Headers.forEach(h => {
-                        orphanRow[h] = "";
-                    });
-                    // Isi lajur fail 2
+                    file1Headers.forEach(h => { orphanRow[h] = ""; });
                     selectedReturnCols.forEach(col => {
                         orphanRow[`[F2] ${col}`] = row2[col];
                     });
@@ -849,14 +830,12 @@
             document.getElementById('statUnmatched').textContent = countUnmatched.toLocaleString();
             document.getElementById('statDiscrepancy').textContent = countDiscrepancy.toLocaleString();
 
-            // Kemaskini Badge pada Tabs Filter
             document.getElementById('countTabAll').textContent = matchResults.length;
             document.getElementById('countTabMatched').textContent = countMatched;
             document.getElementById('countTabUnmatched').textContent = countUnmatched;
             document.getElementById('countTabDiscrepancy').textContent = countDiscrepancy;
             document.getElementById('countTabOrphan').textContent = orphanCount;
 
-            // Paparkan Seksyen Ringkasan
             document.getElementById('summarySection').classList.remove('hidden');
             document.getElementById('summarySection').scrollIntoView({ behavior: 'smooth', block: 'start' });
 
@@ -865,16 +844,13 @@
             showToast(`Padanan selesai: ${countMatched} padan, ${countUnmatched} tidak padan.`);
         }
 
-        // Tapis dan Cari
         function applyFilterAndSearch() {
             filteredResults = matchResults.filter(row => {
-                // Tapis status
                 if (activeFilter === "MATCHED" && row._STATUS_PADANAN !== "MATCHED") return false;
                 if (activeFilter === "UNMATCHED" && row._STATUS_PADANAN !== "UNMATCHED") return false;
                 if (activeFilter === "DISCREPANCY" && row._STATUS_PADANAN !== "DISCREPANCY") return false;
                 if (activeFilter === "ORPHAN" && row._STATUS_PADANAN !== "ORPHAN") return false;
 
-                // Tapis Carian rentas semua medan
                 if (currentSearchQuery) {
                     const rowValues = Object.values(row).join(" ").toLowerCase();
                     if (!rowValues.includes(currentSearchQuery)) return false;
@@ -885,7 +861,6 @@
             renderTable();
         }
 
-        // Papar Jadual & Pagination
         function renderTable() {
             const tableHead = document.getElementById('tableHead');
             const tableBody = document.getElementById('tableBody');
@@ -897,15 +872,12 @@
                 return;
             }
 
-            // Tentukan senarai headers yang hendak dipaparkan
-            // Letakkan Status dan Catatan di hadapan untuk kemudahan semakan
             const allKeys = Object.keys(filteredResults[0]);
             const priorityKeys = ["_STATUS_PADANAN", "_CATATAN_REKONSILIASI"];
             if (filteredResults[0]._BEZA_AMAUN !== undefined) priorityKeys.push("_BEZA_AMAUN");
             const otherKeys = allKeys.filter(k => !priorityKeys.includes(k) && k !== "_SUMBER_FAIL");
             const finalDisplayHeaders = [...priorityKeys, ...otherKeys];
 
-            // Render Header
             let headHTML = '<tr>';
             finalDisplayHeaders.forEach(h => {
                 let label = h.replace('_STATUS_PADANAN', 'STATUS').replace('_CATATAN_REKONSILIASI', 'CATATAN AUDIT').replace('_BEZA_AMAUN', 'VARIANCE (RM)');
@@ -914,12 +886,10 @@
             headHTML += '</tr>';
             tableHead.innerHTML = headHTML;
 
-            // Kira Paginate
             const startIndex = (currentPage - 1) * pageSize;
             const endIndex = Math.min(startIndex + pageSize, filteredResults.length);
             const pageData = filteredResults.slice(startIndex, endIndex);
 
-            // Render Rows
             let bodyHTML = '';
             pageData.forEach(row => {
                 bodyHTML += '<tr class="hover:bg-indigo-50/40 transition">';
@@ -974,14 +944,12 @@
             tableBody.innerHTML = bodyHTML;
             lucide.createIcons();
 
-            // Kemaskini Pagination Labels
             document.getElementById('pageInfo').textContent = `Menunjukkan ${startIndex + 1} hingga ${endIndex} daripada ${filteredResults.length} rekod`;
             document.getElementById('pageCurrent').textContent = currentPage;
             document.getElementById('btnPrevPage').disabled = currentPage <= 1;
             document.getElementById('btnNextPage').disabled = endIndex >= filteredResults.length;
         }
 
-        // Eksport Keputusan ke Excel (.xlsx)
         function exportResultsToExcel() {
             if (!matchResults || matchResults.length === 0) {
                 showToast("Tiada data untuk dieksport!", false);
@@ -989,12 +957,10 @@
             }
 
             try {
-                // Sediakan lembaran kerja
                 const ws = XLSX.utils.json_to_sheet(matchResults);
                 const wb = XLSX.utils.book_new();
                 XLSX.utils.book_append_sheet(wb, ws, "Hasil Padanan");
 
-                // Nama fail eksport dinamik
                 const timestamp = new Date().toISOString().slice(0, 10);
                 const outFileName = `Laporan_Padanan_Rekonsiliasi_${timestamp}.xlsx`;
 
@@ -1006,7 +972,6 @@
             }
         }
 
-        // Reset Keseluruhan Sistem
         function resetAll() {
             file1Data = [];
             file2Data = [];
